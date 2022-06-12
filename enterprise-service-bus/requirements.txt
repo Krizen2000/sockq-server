@@ -1,0 +1,5 @@
+Flask == 2.2.1
+Flask-RESTful == 0.3.9
+flask-sock == 0.5.2
+Flask-SQLAlchemy == 2.5.1
+mysql-connector-python == 8.0.29
