@@ -2,6 +2,7 @@ from sys import stderr
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_sock import Sock
+from simple_websocket import ConnectionClosed, ConnectionError
 from marshmallow import Schema, fields
 import socket, requests, json, datetime, os
 
@@ -14,13 +15,6 @@ app.config['SOCK_SERVER_OPTIONS'] = {'ping_interval' : 25}
 
 sock = Sock(app)
 db = SQLAlchemy(app)
-
-
-SERVICE_TOKENS = dict()
-SERVICE_IPADDRESSES = dict()
-SERVICE_PORTS = dict()
-SERVICE_URIS = dict()
-client_userid = dict()
 
 
 
@@ -58,104 +52,146 @@ class ServiceDetailsSchema(Schema):
 
 
 
+SERVICE_TOKENS = dict()
+SERVICE_IPADDRESSES = dict()
+SERVICE_PORTS = dict()
+SERVICE_URIS = dict()
+
+
+# List of user ids
+online_userids = list()
+# Dict containing UserID WebSocket pair
+online_users = dict()
+
+
+
+
 @sock.route('/')
 def clientListener(ws):
-    datajson = ws.receive()
-    data = json.loads(datajson.decode('utf-8'))
-    print(data,file=stderr)
+    client_userid : str = None
+    connected = True
 
-    action = data.get('action')
+    while connected:
+        try:
+            datajson = ws.receive()
+        except ConnectionClosed as cc:
+            print("Connection with client: ",client_userid," is closed.",file=stderr)
+            if client_userid is None:
+                connected = False
+                continue
+            online_userids.remove(client_userid)
+            online_users.pop(client_userid)
+        except ConnectionError as ce:
+            print("Error Occured with client: ",client_userid,". Coonection is closed.",file=stderr)
+            if client_userid is None:
+                connected = False
+                continue
+            online_userids.remove(client_userid)
+            online_users.pop(client_userid)
 
-    match action:
-        case "signingup":
-            response = requests.post(url=SERVICE_URIS["signup"],json=data).json()
-            ws.send(json.dumps(response).encode('utf-8'))
+        data = json.loads(datajson.decode('utf-8'))
+        print(data,file=stderr)
 
-            if response.get('data').get('status') != "successful":
-                return
+        action = data.get('action')
 
-            client_userid[ws] = data.get('data').get('userid')
-        
-        case "loggingin":
-            response = requests.post(url=SERVICE_URIS["login"],json=data).json()
-            ws.send(json.dumps(response).encode('utf-8'))
-            
-            if response.get('data').get('status') != "successful":
-                return
+        match action:
+            case "signingup":
+                response = requests.post(url=SERVICE_URIS["signup"],json=data).json()
+                ws.send(json.dumps(response).encode('utf-8'))
 
-            client_userid[ws] = data.get('data').get('userid')
-            requests.post(url=SERVICE_URIS["senddelayedmessages"],json={
-                "action" : "sendingdelayedmessages",
-                "data" : {
-                    "userid" : data.get('data').get('userid')
+                if response.get('data').get('status') != "successful":
+                    connected = False
+                    return
+
+                client_userid = data.get('data').get('userid')
+                online_userids.append(client_userid)
+                online_users[client_userid] = ws
+
+            case "loggingin":
+                response = requests.post(url=SERVICE_URIS["login"],json=data).json()
+                ws.send(json.dumps(response).encode('utf-8'))
+
+                if response.get('data').get('status') != "successful":
+                    connected = False
+                    return
+
+                client_userid = data.get('data').get('userid')
+                online_userids.append(client_userid)
+                online_users[client_userid] = ws
+                requests.post(url=SERVICE_URIS["senddelayedmessages"],json={
+                    "action" : "sendingdelayedmessages",
+                    "data" : {
+                        "userid" : data.get('data').get('userid')
+                    }
+                })
+
+            case "gettinguserdetails" if client_userid.get(ws) is not None:
+                custom_uri = SERVICE_URIS["getuserdetails"] + "/" + data.get('data').get('userid')
+                response = requests.get(url=custom_uri).json()
+                ws.send(json.dumps(response).encode('utf-8'))
+
+            case "updatinguserdetails" if client_userid.get(ws) is not None:
+                data["data"]["userid"] = client_userid.get(ws)
+                response = requests.post(url=SERVICE_URIS["updateuserdetails"],json=data).json()
+                ws.send(json.dumps(response).encode('utf-8'))
+
+            case "sendingmessage" if client_userid.get(ws) is not None:
+                data['data']['sender'] = client_userid.get(ws)
+                data['data']['date'] = str(datetime.datetime.now())
+                response = requests.post(url=SERVICE_URIS["sendmessage"],json=data).json()
+                ws.send(json.dumps(response).encode('utf-8'))
+
+            # Used by Admins to stop Server
+            case "stoppingservice" if data.get('data').get('stoptoken') == "stoptheserver":
+                service = ServiceDetails.query.get("enterprise-service-bus")
+                service.delete()
+
+                try:
+                    requests.post(url=('http://' + SERVICE_IPADDRESSES["authentication-service"] + ':' + SERVICE_PORTS["authentication-service"] + '/stopservice'))
+                except Exception:
+                    pass
+                try:
+                    requests.post(url=('http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/stopservice'))
+                except Exception:
+                    pass
+                try:
+                    requests.post(url=('http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/stopservice'))
+                except Exception:
+                    pass
+                
+                ws.send(json.dumps({
+                    "action" : "stoppingservice",
+                    "data" : {
+                        "status" : "successful"
+                    }
+                }).encode('utf-8'))
+                global exiting
+                exiting = True
+
+            case _ if client_userid.get(ws) is not None:
+                response = {
+                    "action" : action,
+                    "data" : {
+                        "status" : "failed",
+                        "error_message" : "Provided action is not in the API"
+                    }
                 }
-            })
-        
-        case "gettinguserdetails" if client_userid.get(ws) is not None:
-            custom_uri = SERVICE_URIS["getuserdetails"] + "/" + data.get('data').get('userid')
-            response = requests.get(url=custom_uri).json()
-            ws.send(json.dumps(response).encode('utf-8'))
-        
-        case "updatinguserdetails" if client_userid.get(ws) is not None:
-            data["data"]["userid"] = client_userid.get(ws)
-            response = requests.post(url=SERVICE_URIS["updateuserdetails"],json=data).json()
-            ws.send(json.dumps(response).encode('utf-8'))
-        
-        case "sendingmessage" if client_userid.get(ws) is not None:
-            data['data']['sender'] = client_userid.get(ws)
-            data['data']['date'] = str(datetime.datetime.now())
-            response = requests.post(url=SERVICE_URIS["sendmessage"],json=data).json()
-            ws.send(json.dumps(response).encode('utf-8'))
+                ws.send(json.dumps(response).encode('utf-8'))
+                client_userid.pop(ws)
+                ws.close()
 
-        # Used by Admins to stop Server
-        case "stoppingservice" if data.get('data').get('stoptoken') == "stoptheserver":
-            service = ServiceDetails.query.get("enterprise-service-bus")
-            service.delete()
-
-            try:
-                requests.post(url=('http://' + SERVICE_IPADDRESSES["authentication-service"] + ':' + SERVICE_PORTS["authentication-service"] + '/stopservice'))
-            except Exception:
-                pass
-            try:
-                requests.post(url=('http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/stopservice'))
-            except Exception:
-                pass
-            try:
-                requests.post(url=('http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/stopservice'))
-            except Exception:
-                pass
-            
-            ws.send(json.dumps({
-                "action" : "stoppingservice",
-                "data" : {
-                    "status" : "successful"
+            case _:
+                response = {
+                    "data" : {
+                        "error_message" : "Not authenticated to use the API"
+                    }
                 }
-            }).encode('utf-8'))
-            global exiting
-            exiting = True
-
-        case _ if client_userid.get(ws) is not None:
-            response = {
-                "action" : action,
-                "data" : {
-                    "status" : "failed",
-                    "error_message" : "Provided action is not in the API"
-                }
-            }
-            ws.send(json.dumps(response).encode('utf-8'))
-            client_userid.pop(ws)
-            ws.close()
-        
-        case _:
-            response = {
-                "data" : {
-                    "error_message" : "Not authenticated to use the API"
-                }
-            }
-            ws.send(json.dumps(response).encode('utf-8'))
-            ws.close()
+                connected = False
+                ws.send(json.dumps(response).encode('utf-8'))
+                ws.close()
 
         # Add a Log Out feature and also change active users if ping times out
+
 
 # @app.route('/sendmessage',methods=['POST'])
 # def sendMessage():
