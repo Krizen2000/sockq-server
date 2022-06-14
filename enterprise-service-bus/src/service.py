@@ -125,18 +125,18 @@ def clientListener(ws):
                     }
                 })
 
-            case "gettinguserdetails" if client_userid.get(ws) is not None:
+            case "gettinguserdetails" if client_userid is not None:
                 custom_uri = SERVICE_URIS["getuserdetails"] + "/" + data.get('data').get('userid')
                 response = requests.get(url=custom_uri).json()
                 ws.send(json.dumps(response).encode('utf-8'))
 
-            case "updatinguserdetails" if client_userid.get(ws) is not None:
-                data["data"]["userid"] = client_userid.get(ws)
+            case "updatinguserdetails" if client_userid is not None:
+                data["data"]["userid"] = client_userid
                 response = requests.post(url=SERVICE_URIS["updateuserdetails"],json=data).json()
                 ws.send(json.dumps(response).encode('utf-8'))
 
-            case "sendingmessage" if client_userid.get(ws) is not None:
-                data['data']['sender'] = client_userid.get(ws)
+            case "sendingmessage" if client_userid is not None:
+                data['data']['sender'] = client_userid
                 data['data']['date'] = str(datetime.datetime.now())
                 response = requests.post(url=SERVICE_URIS["sendmessage"],json=data).json()
                 ws.send(json.dumps(response).encode('utf-8'))
@@ -168,7 +168,7 @@ def clientListener(ws):
                 global exiting
                 exiting = True
 
-            case _ if client_userid.get(ws) is not None:
+            case _ if client_userid is not None:
                 response = {
                     "action" : action,
                     "data" : {
@@ -177,8 +177,6 @@ def clientListener(ws):
                     }
                 }
                 ws.send(json.dumps(response).encode('utf-8'))
-                client_userid.pop(ws)
-                ws.close()
 
             case _:
                 response = {
