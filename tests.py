@@ -30,9 +30,9 @@ class Auth:
         jsoncontents = {
             "action" : "loggingin",
             "data" : {
-              "userid" : "krizen88790",
+              "userid" : "krizen8",
               "email" : "kri@gm.com",
-              "password" : "45yp"
+              "password" : "zaworudo"
             } 
         }
 
@@ -49,7 +49,7 @@ class Data:
         jsoncontents = {
             "action" : "gettinguserdetails",
             "data" : {
-                "userid" : "krizen88790"
+                "userid" : "krizen8"
             }
         }
 
@@ -64,7 +64,7 @@ class Data:
         jsoncontents = {
             "action" : "updatinguserdetails",
             "data" : {
-                "userid" : "krizen88790",
+                "userid" : "krizen8",
                 "username" : "KrizenLOL",
                 "email" : "krizee@gmail.com",
                 "description" : "...",
