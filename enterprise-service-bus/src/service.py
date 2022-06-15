@@ -138,7 +138,6 @@ def clientListener(ws):
             case "sendingmessage" if client_userid is not None:
                 data['data']['sender'] = client_userid
                 data['data']['date'] = str(datetime.datetime.now())
-                # response = requests.post(url=SERVICE_URIS["sendmessage"],json=data).json()
 
                 # Stores Delayec messages
                 if data.get('data').get('receiver') not in client_userid:
@@ -221,60 +220,7 @@ def clientListener(ws):
         # Add a Log Out feature and also change active users if ping times out
 
 
-# @app.route('/sendmessage',methods=['POST'])
-# def sendMessage():
-#     rawrequest = request.get_json()
-#     requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
-#     userid = requestdata.get('data').get('receiver')
 
-#     for id, ws in online_users.items():
-#         if ws is None:  # When WebSocket is left open and not closed properly
-#             break
-#         if id == userid:
-#             ws.send(json.dumps(requestdata))
-#             return jsonify({
-#                 "action" : "sendingdelayedmessages",
-#                 "data" : {
-#                     "status" : "successful"
-#                 }
-#             })
-#     return jsonify({
-#         "action" : "sendingdelayedmessages",
-#         "data" : {
-#             "status" : "failed",
-#             "error_message" : "Client is offline"
-#         }
-#     })
-
-# @app.route('/stopservice',methods=['POST'])
-# def stopService():
-#     service = ServiceDetails.query.get("enterprise-service-bus")
-#     service.delete()
-
-#     try:
-#         requests.post(url=('http://' + SERVICE_IPADDRESSES["authentication-service"] + ':' + SERVICE_PORTS["authentication-service"] + '/stopservice'))
-#     except Exception:
-#         pass
-#     try:
-#         requests.post(url=('http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/stopservice'))
-#     except Exception:
-#         pass
-#     try:
-#         requests.post(url=('http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/stopservice'))
-#     except Exception:
-#         pass
-
-#     global exiting
-#     exiting = True
-
-#     return jsonify(
-#         {
-#             "action" : "stoppingservice",
-#             "data" : {
-#                 "status" : "successful"
-#             }
-#         }
-#     )
 
 @app.teardown_request
 def teardown(exception):
@@ -313,7 +259,6 @@ if __name__ == "__main__":
         SERVICE_IPADDRESSES[service.get('serviceid')] = service.get('ipv4')
         SERVICE_PORTS[service.get('serviceid')] = service.get('port')
         print("Value of serv id: ",service.get('serviceid'),"\nValue of serv ip: ",service.get('ipv4'),"\nValue of serv port: ",service.get('port'),file=stderr)
-        # SERVICE_TOKENS[service.serviceid] = service.get('token')
 
     # Caching Service URIs
     SERVICE_URIS["signup"] = 'http://' + SERVICE_IPADDRESSES["authentication-service"] + ':' + SERVICE_PORTS["authentication-service"] + '/signup'

@@ -12,8 +12,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATION"] = False
 
 db = SQLAlchemy(app)
 
-ESB_TOKEN =""
-
 
 
 class ServiceDetails(db.Model):
@@ -186,9 +184,6 @@ if __name__ == "__main__":
     service.save()
 
     serializer = ServiceDetailsSchema()
-    # response = serializer.dump(ServiceDetails.query.get("enterprise-service-bus"))
-    
-    # ESB_TOKEN = response["token"]
 
     try:
         app.run(port=44502)

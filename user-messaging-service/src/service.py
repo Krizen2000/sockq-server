@@ -174,9 +174,6 @@ class DelayedUserMessagingQueueSchema(Schema):
 
 @app.route('/getdelayedmessages/<str:userid>',methods=["GET"])
 def getDelayedMessages(userid):
-    # rawrequest = request.get_json()
-    # requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
-    # userid = requestdata.get('data').get('userid')
 
     serializer = DelayedUserMessagingQueueSchema(many=True)
     delayedmessageentities : any
@@ -203,28 +200,6 @@ def getDelayedMessages(userid):
             "messages" : delayedmessages
         }
     })
-    # for message in delayedmessages:
-    #     jsonfilecontents = {
-    #         "action" : "sendingmessage",
-    #         "data" : {
-    #             "sender" : message.get("sender"),
-    #             "receiver" : message.get('receiver'),
-    #             "message" : message.get('message'),
-    #             "date" : message.get('date')
-    #         }
-    #     }
-    #     requests.post(url=ESB_SEND_MESSAGE_URI,json=jsonfilecontents)
-    #     delayedmessage = DelayedUserMessagingQueue.query.get(message.get("id"))
-    #     delayedmessage.delete()
-
-    # return jsonify(
-    #     {
-    #         "action" : "sendingdelayedmessages",
-    #         "data" : {
-    #             "status" : "successful"
-    #         }
-    #     }
-    # ), 200
 
 # ? Can store single message not list of them
 @app.route('/storedelayedmessage',methods=['POST'])
@@ -302,7 +277,6 @@ def setESBInfo():
     global ESB_ADDRESS_v4, ESB_PORT, ESB_URI, ESB_SEND_MESSAGE_URI
     ESB_ADDRESS_v4 = data.get('ipv4')
     ESB_PORT = data.get('port')
-    # ESB_TOKEN = data.get('token')
     ESB_URI = "http://" + ESB_ADDRESS_v4 + ":" + ESB_PORT
     ESB_SEND_MESSAGE_URI = ESB_URI + "/sendmessage"
     pass
@@ -316,16 +290,6 @@ if __name__ == "__main__":
         token = ""
     )
     service.save()
-
-    # serializer = ServiceDetailsSchema()
-    # response = serializer.dump(ServiceDetails.query.get("enterprise-service-bus"))
-    
-    # ESB_ADDRESS_v4 = response.get('ipv4')
-    # ESB_PORT = response.get('port')
-    # # ESB_TOKEN = response('port')
-
-    # ESB_URI = "http://" + ESB_ADDRESS_v4 + ":" + ESB_PORT
-    # ESB_SEND_MESSAGE_URI = ESB_URI + "/senddelayedmessage"
 
     try:
         app.run(port=44503)
