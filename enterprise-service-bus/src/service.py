@@ -68,6 +68,8 @@ online_users = dict()
 
 @sock.route('/')
 def clientListener(ws):
+    global online_userids
+    global online_users
     client_userid : str = None
     connected = True
 
@@ -160,7 +162,9 @@ def clientListener(ws):
                     }))
                     continue
                 
-                # ! Sending Messages is not implemented
+                # Sends the message by getting the websocket from the global dict
+                recv_ws = online_users.get(data.get('data').get('receiver'))
+                recv_ws.send(json.dumps(data))
 
                 # ws.send(json.dumps(response).encode('utf-8'))
 
@@ -188,6 +192,9 @@ def clientListener(ws):
                         "status" : "successful"
                     }
                 }).encode('utf-8'))
+
+                # Close all the websockets with a message json and then shutdown the server
+
                 global exiting
                 exiting = True
 
