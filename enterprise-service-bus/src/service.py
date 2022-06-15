@@ -101,7 +101,7 @@ def clientListener(ws):
 
                 if response.get('data').get('status') != "successful":
                     connected = False
-                    return
+                    continue
 
                 client_userid = data.get('data').get('userid')
                 online_userids.append(client_userid)
@@ -113,17 +113,15 @@ def clientListener(ws):
 
                 if response.get('data').get('status') != "successful":
                     connected = False
-                    return
+                    continue
 
                 client_userid = data.get('data').get('userid')
                 online_userids.append(client_userid)
                 online_users[client_userid] = ws
-                requests.post(url=SERVICE_URIS["senddelayedmessages"],json={
-                    "action" : "sendingdelayedmessages",
-                    "data" : {
-                        "userid" : data.get('data').get('userid')
-                    }
-                })
+
+                # Request Delayed Messages if exist
+                response = requests.get(url=( SERVICE_URIS["getdelayedmessages"] + '/' + client_userid ))
+                ws.send(json.dumps(response).encode('utf-8'))
 
             case "gettinguserdetails" if client_userid is not None:
                 custom_uri = SERVICE_URIS["getuserdetails"] + "/" + data.get('data').get('userid')
@@ -138,8 +136,33 @@ def clientListener(ws):
             case "sendingmessage" if client_userid is not None:
                 data['data']['sender'] = client_userid
                 data['data']['date'] = str(datetime.datetime.now())
-                response = requests.post(url=SERVICE_URIS["sendmessage"],json=data).json()
-                ws.send(json.dumps(response).encode('utf-8'))
+                # response = requests.post(url=SERVICE_URIS["sendmessage"],json=data).json()
+
+                # Stores Delayec messages
+                if data.get('data').get('receiver') not in client_userid:
+                    response = requests.post(url=SERVICE_URIS["storedelayedmessage"],json=data).json()
+
+                    if response.get('data').get('status') != "successful":
+                        ws.send(json.dumps({
+                            "action" : "sendingmessage",
+                            "data" : {
+                                "status" : "failed",
+                                "error_message" : response.get('data').get('error_message')
+                            }
+                        }))
+                        continue
+
+                    ws.send(json.dumps({
+                        "action" : "sendingmessage",
+                        "data" : {
+                            "status" : "successful"
+                        }
+                    }))
+                    continue
+                
+                # ! Sending Messages is not implemented
+
+                # ws.send(json.dumps(response).encode('utf-8'))
 
             # Used by Admins to stop Server
             case "stoppingservice" if data.get('data').get('stoptoken') == "stoptheserver":
@@ -197,7 +220,7 @@ def clientListener(ws):
 #     requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
 #     userid = requestdata.get('data').get('receiver')
 
-#     for ws, id in client_userid.items():
+#     for id, ws in online_users.items():
 #         if ws is None:  # When WebSocket is left open and not closed properly
 #             break
 #         if id == userid:
@@ -291,7 +314,8 @@ if __name__ == "__main__":
     SERVICE_URIS["getuserdetails"] = 'http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/getuserdetails'
     SERVICE_URIS["updateuserdetails"] = 'http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/updateuserdetails'
     SERVICE_URIS["sendmessage"] = 'http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/sendmessage'
-    SERVICE_URIS["senddelayedmessages"] = 'http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/senddelayedmessages'
+    SERVICE_URIS["storedelayedmessage"] = 'http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/storedelayedmessage'
+    SERVICE_URIS["getdelayedmessages"] = 'http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/getdelayedmessages'
 
     print("Value of SERVICE_URIS[\"signup\"]: ",SERVICE_URIS["signup"],file=stderr)
     print("Value of SERVICE_URIS[\"login\"]: ",SERVICE_URIS["login"],file=stderr)

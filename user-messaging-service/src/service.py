@@ -1,3 +1,4 @@
+from sys import stderr
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, fields
@@ -132,56 +133,76 @@ class DelayedUserMessagingQueueSchema(Schema):
 
 
 
-@app.route('/sendmessage',methods=['POST'])
-def sendMessage():
-    if ESB_SEND_MESSAGE_URI is None:
-        setESBInfo()
+# ! The functionatity should be changed to check the contents of message for some dangerous stuff
+# @app.route('/sendmessage',methods=['POST'])
+# def sendMessage():
+#     if ESB_SEND_MESSAGE_URI is None:
+#         setESBInfo()
 
-    rawrequest = request.get_json()
-    requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
-    receiverid = requestdata.get("data").get("receiver")
+#     rawrequest = request.get_json()
+#     requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
+#     receiverid = requestdata.get("data").get("receiver")
 
-    response = requests.post(url=ESB_SEND_MESSAGE_URI,json=requestdata).json()
+#     response = requests.post(url=ESB_SEND_MESSAGE_URI,json=requestdata).json()
 
-    if response.get('data').get('status') != "successful":
-        delayedmessage = DelayedUserMessagingQueue(
-            receiver = receiverid,
-            sender = requestdata.get("data").get("sender"),
-            message = requestdata.get("data").get("message"),
-            date = requestdata.get("data").get("date")
-        )
-        delayedmessage.save()
-        return jsonify(
-            {
-                "action" : "sendingmessage",
-                "data" : {
-                    "status" : "pending"
-                }
-            }
-        ), 102
+#     if response.get('data').get('status') != "successful":
+#         delayedmessage = DelayedUserMessagingQueue(
+#             receiver = receiverid,
+#             sender = requestdata.get("data").get("sender"),
+#             message = requestdata.get("data").get("message"),
+#             date = requestdata.get("data").get("date")
+#         )
+#         delayedmessage.save()
+#         return jsonify(
+#             {
+#                 "action" : "sendingmessage",
+#                 "data" : {
+#                     "status" : "pending"
+#                 }
+#             }
+#         ), 102
 
-    return jsonify(
-        {
-            "action" : "sendingmessage",
-            "data" : {
-                "status" : "sent"
-            }
-        }, 200
-    )
+#     return jsonify(
+#         {
+#             "action" : "sendingmessage",
+#             "data" : {
+#                 "status" : "sent"
+#             }
+#         }, 200
+#     )
 
-@app.route('/senddelayedmessages',methods=["POST"])
-def sendDelayedMessages():
-    rawrequest = request.get_json()
-    requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
-    userid = requestdata.get('data').get('userid')
+
+@app.route('/getdelayedmessages/<str:userid>',methods=["GET"])
+def getDelayedMessages(userid):
+    # rawrequest = request.get_json()
+    # requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
+    # userid = requestdata.get('data').get('userid')
 
     serializer = DelayedUserMessagingQueueSchema(many=True)
-    delayedmessages = serializer.dump(DelayedUserMessagingQueue.query.filter_by(receiver=userid))
-    for message in delayedmessages:
-        delayedmessage = DelayedUserMessagingQueue.query.get(message.get("id"))
-        delayedmessages.delete()
+    delayedmessageentities : any
+    try:
+        delayedmessageentities = DelayedUserMessagingQueue.query.filter_by(receiver=userid)
+    except Exception as e:
+        print(e.args(),file=stderr)
+        return jsonify({
+            "action" : "getdelayedmessages",
+            "data" : {
+                "status" : "failed",
+                "error_message" : "Some error occured while retrieving delayed messages"
+            }
+        })
+
+    delayedmessages = serializer.dump(delayedmessageentities)
+    for message in delayedmessageentities:
+        message.delete()
     
-    return jsonify(delayedmessages)
+    return jsonify({
+        "action" : "getdelayedmessages",
+        "data" : {
+            "status" : "successful",
+            "messages" : delayedmessages
+        }
+    })
     # for message in delayedmessages:
     #     jsonfilecontents = {
     #         "action" : "sendingmessage",
@@ -204,6 +225,38 @@ def sendDelayedMessages():
     #         }
     #     }
     # ), 200
+
+# ? Can store single message not list of them
+@app.route('/storedelayedmessage',methods=['POST'])
+def storeDelayedMessages():
+    rawrequest = request.get_json()
+    requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
+
+    delayedmessage = DelayedUserMessagingQueue(
+        sender = requestdata.get('data').get('sender'),
+        receiver = requestdata.get('data').get('receiver'),
+        message = requestdata.get('data').get('message'),
+        date = requestdata.get('data').get('date')
+    )
+
+    try:
+        delayedmessage.save()
+    except Exception as err:
+        print(err.args(),file=stderr)
+        return jsonify({
+            "action" : "storingdelayedmessage",
+            "data" : {
+                "status" : "failed",
+                "error_message" : "Couldn't save the delayed message"
+            }
+        })
+
+    return jsonify({
+        "action" : "storingdelayedmessage",
+        "data" : {
+            "status" : "successful"
+        }
+    })
 
 @app.route('/stopservice',methods=['POST'])
 def stopService():
