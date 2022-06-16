@@ -82,6 +82,21 @@ class Data:
 
         return response, ws
 
+    @staticmethod
+    async def deleteUserDetails(ws):
+        jsoncontents = {
+            "action" : "deletinguserdetails",
+            "data" : {
+                "password" : "zawarudo"
+            }
+        }
+
+        await ws.send(json.dumps(jsoncontents).encode('utf-8'))
+        responsejson = await ws.recv()
+        response = json.loads(responsejson.decode('utf-8'))
+        
+        return response, ws
+
 class Msg:
 
     @staticmethod

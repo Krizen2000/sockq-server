@@ -68,6 +68,11 @@ async def execTest(test, ws):
                 print("Output of updateUserDetails:")
                 print(out)
                 return ws
+            elif inp == "deleteuserdetails":
+                out = await Data.deleteUserDetails(ws)
+                print("Output of deleteUserDetails:")
+                print(out)
+                return ws
             else:
                 print("Wrong Selection ")
                 return ws
