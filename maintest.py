@@ -34,10 +34,10 @@ def choiceForTest() -> str | None:
     pass
 
 async def execTest(test, ws):
-    inp = str(input("Specific Test for module or all? ('specific','all'): ")).lower()
+    # inp = str(input("Specific Test for module or all? ('specific','all'): ")).lower()
 
-    match test,inp:  # Need to implement Feature
-        case "auth","specific":
+    match test:  # Need to implement Feature
+        case "auth":
             inp = str(input("Which test ? (signup,login): ")).lower()
 
             if inp == "signup":
@@ -55,17 +55,7 @@ async def execTest(test, ws):
                 return ws
             pass
 
-        case "auth","all":
-            out1 = await Auth.signUp(ws)
-            print("Output of Signin:")
-            print(out1)
-
-            out2 = await Auth.logIn(ws)
-            print("Output of Login:")
-            print(out2)
-            return ws
-
-        case "data", "specific":
+        case "data":
             inp = str(input("Which test? (getUserDetails,updateUserDetails):")).lower()
 
             if inp == "getuserdetails":
@@ -81,16 +71,6 @@ async def execTest(test, ws):
             else:
                 print("Wrong Selection ")
                 return ws
-        
-        case "data", "all":
-            out1 = await Data.getUserDetails(ws)
-            print("Output of getUserDetails")
-            print(out1)
-
-            out2 = await Data.updateUserDetails(ws)
-            print("Output of updateUserDetails")
-            print(out2)
-            return ws
 
         case "msg", "specific":
             inp = str(input("Which Test?(message):")).lower()
