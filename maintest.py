@@ -46,9 +46,9 @@ async def execTest(test, ws):
                 print(out)
                 return ws
             elif inp == "login":
-                out = await Auth.logIn(ws)
+                out1, out2 = await Auth.logIn(ws)
                 print("Output of Login:")
-                print(out)
+                print(out1 + '\n' + "Delayed Messages:" + '\n' + out2)
                 return ws
             else:
                 print("Wrong Selection ")

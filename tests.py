@@ -38,9 +38,11 @@ class Auth:
 
         await ws.send(json.dumps(jsoncontents).encode('utf-8'))
         responsejson = await ws.recv()
-        response = json.loads(responsejson.decode('utf-8'))
+        response1 = json.loads(responsejson.decode('utf-8'))
+        responsejson = await ws.recv()
+        response2 = json.loads(responsejson.decode('utf-8'))
 
-        return response, ws
+        return response1, response2, ws
     
 class Data:
 
