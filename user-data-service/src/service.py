@@ -1,3 +1,4 @@
+from sys import stderr
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, fields
@@ -135,6 +136,42 @@ def updateUserDetails():
             }
         }
     ), 204
+
+@app.route('/deleteuserdetails',methods=['POST'])
+def deleteUserDetails():
+    rawrequest = request.get_json()
+    requestdata = rawrequest if type(rawrequest) == type(dict()) else json.loads(rawrequest)
+
+    user : any
+    try:
+        user = UserDetails.query.get(requestdata.get('data').get('userid'))
+    except Exception as err:
+        print(err.args())
+        return jsonify({
+            "action" : "deletinguserdetails",
+            "data" : {
+                "status" : "failed",
+                "error_message" : "User doesn't exist to delete"
+            }
+        })
+    try:
+        user.delete()
+    except Exception as err:
+        print(err.args(),file=stderr)
+        return jsonify({
+            "action" : "deletinguserdetails",
+            "data" : {
+                "status" : "failed",
+                "error_message" : str(err.args())
+            }
+        })
+    
+    return jsonify({
+        "action" : "deletinguserdetails",
+        "data" : {
+            "status" : "successful"
+        }
+    })
 
 @app.route('/stopservice',methods=['POST'])
 def stopService():

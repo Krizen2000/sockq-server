@@ -135,6 +135,26 @@ def clientListener(ws):
                 response = requests.post(url=SERVICE_URIS["updateuserdetails"],json=data).json()
                 ws.send(json.dumps(response).encode('utf-8'))
 
+            case "deletinguserdetails" if client_userid is not None:
+                data["data"]["userid"] = client_userid
+                passwrd = data.get('data').get('password')
+                response = requests.get(url=( SERVICE_URIS["verifypassword"]+'/'+client_userid+'/'+passwrd)).json()
+
+                if response.get('data').get('status') != "successful":
+                    ws.send(json.dumps(response).encode('utf-8'))
+                    continue
+
+                response = requests.post(url=SERVICE_URIS["deleteuserdetails"],json=data).json()
+
+                if response.get('data').get('status') != "successful":
+                    ws.send(json.dumps(response).encode('utf-8'))
+                    continue
+
+                online_userids.remove(client_userid)
+                online_users.pop(client_userid)
+                client_userid = None
+                connected = False
+
             case "sendingmessage" if client_userid is not None:
                 data['data']['sender'] = client_userid
                 data['data']['date'] = str(datetime.datetime.now())
@@ -263,8 +283,10 @@ if __name__ == "__main__":
     # Caching Service URIs
     SERVICE_URIS["signup"] = 'http://' + SERVICE_IPADDRESSES["authentication-service"] + ':' + SERVICE_PORTS["authentication-service"] + '/signup'
     SERVICE_URIS["login"] = 'http://' + SERVICE_IPADDRESSES["authentication-service"] + ':' + SERVICE_PORTS["authentication-service"] + '/login'
+    SERVICE_URIS["verifypassword"] = 'http://' + SERVICE_IPADDRESSES["authentication-service"] + ':' + SERVICE_PORTS["authentication-service"] + '/verifypassword'
     SERVICE_URIS["getuserdetails"] = 'http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/getuserdetails'
     SERVICE_URIS["updateuserdetails"] = 'http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/updateuserdetails'
+    SERVICE_URIS["deleteuserdetails"] = 'http://' + SERVICE_IPADDRESSES["user-data-service"] + ':' + SERVICE_PORTS["user-data-service"] + '/deleteuserdetails'
     SERVICE_URIS["sendmessage"] = 'http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/sendmessage'
     SERVICE_URIS["storedelayedmessage"] = 'http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/storedelayedmessage'
     SERVICE_URIS["getdelayedmessages"] = 'http://' + SERVICE_IPADDRESSES["user-messaging-service"] + ':' + SERVICE_PORTS["user-messaging-service"] + '/getdelayedmessages'

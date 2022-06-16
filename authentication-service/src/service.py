@@ -178,6 +178,33 @@ def logIn():
             }
         ), 403
 
+
+@app.route('/verifypassword/<str:userid>/<str:passwrd>',methods=['GET'])
+def verifyPassword(userid,passwrd):
+    serializer = UserDetailsSchema()
+    user : any
+    try:
+        user = serializer(UserDetails.query.get(userid))
+    except Exception as err:
+        print(err.args(),file=stderr)
+
+    if user.get('password') != passwrd:
+        return jsonify({
+            "action" : "verifypassword",
+            "data" : {
+                "status" : "incorrect",
+                "error_message" : "Password didn't match"
+            }
+        })
+    
+    return jsonify({
+        "action" : "verifypassword",
+        "data" : {
+            "status" : "successful"
+        }
+    })
+
+
 @app.route('/stopservice',methods=['POST'])
 def stopService():
     service = ServiceDetails.query.get("authentication-service")
