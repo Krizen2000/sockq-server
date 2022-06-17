@@ -31,8 +31,8 @@ class Auth:
             "action" : "loggingin",
             "data" : {
               "userid" : "krizen8",
-              "email" : "kri@gm.com",
-              "password" : "zaworudo"
+              "email" : "krizenknoz@gmail.com",
+              "password" : "zawarudo"
             } 
         }
 
