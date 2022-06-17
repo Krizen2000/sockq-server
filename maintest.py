@@ -1,4 +1,5 @@
 import asyncio, json, websockets
+from sys import stderr
 from tests import Auth, Data, Msg, Esb
 
 
@@ -48,7 +49,7 @@ async def execTest(test, ws):
             elif inp == "login":
                 out1, out2 = await Auth.logIn(ws)
                 print("Output of Login:")
-                print(out1 + '\n' + "Delayed Messages:" + '\n' + out2)
+                print(out1,'\n',"Delayed Messages:",'\n',out2)
                 return ws
             else:
                 print("Wrong Selection ")

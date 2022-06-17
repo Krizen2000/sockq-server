@@ -42,7 +42,7 @@ class Auth:
         responsejson = await ws.recv()
         response2 = json.loads(responsejson.decode('utf-8'))
 
-        return response1, response2, ws
+        return response1, response2
     
 class Data:
 

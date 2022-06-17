@@ -190,6 +190,7 @@ def getDelayedMessages(userid):
         })
 
     delayedmessages = serializer.dump(delayedmessageentities)
+    print("DelayedMessages: ",delayedmessages,file=stderr)
     for message in delayedmessageentities:
         message.delete()
     
