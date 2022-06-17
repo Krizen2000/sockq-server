@@ -78,7 +78,7 @@ async def execTest(test, ws):
                 print("Wrong Selection ")
                 return ws
 
-        case "msg", "specific":
+        case "msg":
             inp = str(input("Which Test?(message):")).lower()
 
             match inp:
