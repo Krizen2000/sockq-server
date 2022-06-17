@@ -122,7 +122,7 @@ def clientListener(ws):
                 online_users[client_userid] = ws
 
                 # Request Delayed Messages if exist
-                response = requests.get(url=( SERVICE_URIS["getdelayedmessages"] + '/' + client_userid ))
+                response = requests.get(url=( SERVICE_URIS["getdelayedmessages"] + '/' + client_userid )).json()
                 ws.send(json.dumps(response).encode('utf-8'))
 
             case "gettinguserdetails" if client_userid is not None:
