@@ -172,7 +172,7 @@ class DelayedUserMessagingQueueSchema(Schema):
 #     )
 
 
-@app.route('/getdelayedmessages/<str:userid>',methods=["GET"])
+@app.route('/getdelayedmessages/<string:userid>',methods=["GET"])
 def getDelayedMessages(userid):
 
     serializer = DelayedUserMessagingQueueSchema(many=True)

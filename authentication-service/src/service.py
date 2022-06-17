@@ -179,7 +179,7 @@ def logIn():
         ), 403
 
 
-@app.route('/verifypassword/<str:userid>/<str:passwrd>',methods=['GET'])
+@app.route('/verifypassword/<string:userid>/<string:passwrd>',methods=['GET'])
 def verifyPassword(userid,passwrd):
     serializer = UserDetailsSchema()
     user : any
