@@ -170,7 +170,7 @@ def clientListener(ws):
                                 "status" : "failed",
                                 "error_message" : response.get('data').get('error_message')
                             }
-                        }))
+                        }).encode('utf-8'))
                         continue
 
                     ws.send(json.dumps({
@@ -178,12 +178,12 @@ def clientListener(ws):
                         "data" : {
                             "status" : "successful"
                         }
-                    }))
+                    }).encode('utf-8'))
                     continue
                 
                 # Sends the message by getting the websocket from the global dict
                 recv_ws = online_users.get(data.get('data').get('receiver'))
-                recv_ws.send(json.dumps(data))
+                recv_ws.send(json.dumps(data).encode('utf-8'))
 
                 # ws.send(json.dumps(response).encode('utf-8'))
 

@@ -113,7 +113,7 @@ class Msg:
         responsejson = await ws.recv()
         response = json.loads(responsejson.decode('utf-8'))
 
-        return response, ws
+        return response
 
 class Esb:
 
